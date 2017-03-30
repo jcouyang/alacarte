@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "pulp": "^10.0.4"
+  }
+}
