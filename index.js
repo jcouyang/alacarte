@@ -63,14 +63,15 @@ const interpreter = fromArray([evalLit,evalAdd], interpreterOr)
 // var expr = inject(AlaCarte.injectRight(functorAdd)(functorAdd)(functorLit)(AlaCarte.injectId(functorAdd)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(1)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(2)));
 
 function injectWhich(ia, ib, i, iInj) {
+  console.log(`Failed inject type ${i.constructor} into ${ia.constructor} or ${ib.constructor}`);
   if(ia == ib && ia == i) {
     return AlaCarte.injectId(ia)(ib)
   }else if(ia == i) {
-
     return AlaCarte.injectLeft(ia)(ib)
   } else {
     return AlaCarte.injectRight(ia)(ib)(i)(iInj)
   }
+  throw new Error(`Failed inject type ${i.constructor} into ${ia.constructor} or ${ib.constructor}`);
 }
 
 function lit(n) {
