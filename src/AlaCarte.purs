@@ -60,7 +60,17 @@ lit n = inject (Lit n)
 add :: forall f. (Inj Add f) => Expr f -> Expr f -> Expr f
 add a b = inject (Add a b)
 
-expr :: Expr (Or Lit Add)
-expr = add (lit 1) (lit 2)
+data  Mult a = Mult a a
+mult :: forall f. (Inj Mult f) => Expr f -> Expr f -> Expr f
+mult a b = inject (Mult a b)
+
+instance functorMult:: Functor Mult where
+  map f (Mult a b) = Mult (f a) (f b)
+
+instance interpreterMult ::Interpreter Mult where
+  interpret (Mult a b) = a * b
+
+expr :: Expr (Or Lit (Or Add Mult))
+expr = mult (add (lit 1) (lit 2)) (lit 3)
 
 a = interpretExpr expr

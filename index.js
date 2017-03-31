@@ -7,6 +7,7 @@ const {
   interpreterOr,
   Interpreter,
   inject,
+  functorOr,
 } = AlaCarte
 const {Functor} = require('./output/Data.Functor')
 function interpreterFor(functor, interpreter) {
@@ -21,7 +22,7 @@ function fromArray(array, functor) {
   if(tail.length===0) {
     return head;
   }else{
-    return functor(head)(fromArray(tail))
+    return functor(head)(fromArray(tail, functor))
   }
 }
 // ------------------------------
@@ -34,52 +35,58 @@ function Lit(value0) {
   this.value0 = value0
 }
 
-var functorLit = new Functor(f => v => new Lit(v.value0))
-var functorAdd = new Functor(f => v => new Add(f(v.value0), f(v.value1)))
+const functorLit = new Functor(f => v => new Lit(v.value0))
+const functorAdd = new Functor(f => v => new Add(f(v.value0), f(v.value1)))
 
-var evalAdd = interpreterFor(functorAdd, function (v) {
+const evalAdd = interpreterFor(functorAdd, function (v) {
   return v.value0 + v.value1 | 0;
 });
 
-var evalLit = interpreterFor(functorLit, function (v) {
+const evalLit = interpreterFor(functorLit, function (v) {
   return v.value0;
 });
 
-const interpreter = fromArray([evalLit,evalAdd], interpreterOr)
-
-// const injection = inject([functorLit,functorAdd], functorLit)
-// function inject(a, functor, f) {
-//   let head = a[0]
-//   let tail = a.slice(1)
-//   if(tail.length==0){
-//     return f
-//   }
-//   if(head == functor){
-//     return new In( new Inl(f))
-//   }else {
-//     return new Inr(inject(tail, functor, f))
-//   }
-// }
-// var expr = inject(AlaCarte.injectRight(functorAdd)(functorAdd)(functorLit)(AlaCarte.injectId(functorAdd)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(1)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(2)));
-
-function injectWhich(ia, ib, i, iInj) {
-  console.log(`Failed inject type ${i.constructor} into ${ia.constructor} or ${ib.constructor}`);
-  if(ia == ib && ia == i) {
-    return AlaCarte.injectId(ia)(ib)
-  }else if(ia == i) {
-    return AlaCarte.injectLeft(ia)(ib)
-  } else {
-    return AlaCarte.injectRight(ia)(ib)(i)(iInj)
+function injectInto(typeArray, type) {
+  let head = typeArray[0]
+  let tail = typeArray.slice(1)
+  if(head == type && tail.length == 0 ){
+    return AlaCarte.injectId(type)
+  }else if(head == type){
+    return AlaCarte.injectLeft(head)(fromArray(tail, functorOr))
+  }else if(tail.length != 0){
+    return AlaCarte.injectRight(head)(fromArray(tail, functorOr))(type)(injectInto(tail, type))
   }
-  throw new Error(`Failed inject type ${i.constructor} into ${ia.constructor} or ${ib.constructor}`);
+  throw new Error(`Failed inject ${type} into ${typeArray}`);
 }
 
+function Mult(a, b) {
+  this.value0 = a
+  this.value1 = b
+}
+
+const functorMult = new Functor(f => v => new Mult(f(v.value0), f(v.value1)))
+
+const evalMult = interpreterFor(functorMult, function (v) {
+  return v.value0 * v.value1 | 0;
+});
+
+function injectorFrom(types) {
+  return t => injectInto(types, t)
+}
+const injector = injectorFrom([functorLit, functorAdd, functorMult])
+
 function lit(n) {
-  return inject(injectWhich(functorLit, functorAdd, functorLit))(new Lit(n))
+  return inject(injector(functorLit))(new Lit(n))
 }
 
 function add(a, b) {
-  return inject(injectWhich(functorLit, functorAdd, functorAdd, AlaCarte.injectId(functorAdd)))(new Add(a, b))
+  return inject(injector(functorAdd))(new Add(a, b))
 }
 
-console.log(interpretExpr(fromArray([evalLit, evalAdd], interpreterOr))(add(lit(4), lit(3))));
+function mult(a, b) {
+  return inject(injector(functorMult))(new Mult(a, b))
+}
+
+const interpreter = fromArray([evalLit, evalAdd, evalMult], interpreterOr)
+
+console.log(interpretExpr(interpreter)(mult(add(lit(4), lit(3)), lit(3))));
