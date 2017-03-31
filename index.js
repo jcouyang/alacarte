@@ -15,13 +15,13 @@ function interpreterFor(functor, interpreter) {
   }, interpreter);
 }
 
-function fromArray(array) {
+function fromArray(array, functor) {
   let head = array[0]
   let tail = array.slice(1)
   if(tail.length===0) {
     return head;
   }else{
-    return interpreterOr(head)(fromArray(tail))
+    return functor(head)(fromArray(tail))
   }
 }
 // ------------------------------
@@ -45,6 +45,36 @@ var evalLit = interpreterFor(functorLit, function (v) {
   return v.value0;
 });
 
-const interpreter = fromArray([evalLit,evalAdd])
-var res = inject(AlaCarte.injectId(functorLit))(new Lit(10))
-console.log(interpretExpr(res));
+const interpreter = fromArray([evalLit,evalAdd], interpreterOr)
+
+// const injection = inject([functorLit,functorAdd], functorLit)
+// function inject(a, functor, f) {
+//   let head = a[0]
+//   let tail = a.slice(1)
+//   if(tail.length==0){
+//     return f
+//   }
+//   if(head == functor){
+//     return new In( new Inl(f))
+//   }else {
+//     return new Inr(inject(tail, functor, f))
+//   }
+// }
+// var expr = inject(AlaCarte.injectRight(functorAdd)(functorAdd)(functorLit)(AlaCarte.injectId(functorAdd)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(1)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(2)));
+
+var exprLit = inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(10))
+function injectWhich(ia, ib, i, iInj) {
+  if(ia == ib && ia == i) {
+    return AlaCarte.injectId(ia)(ib)
+  }else if(ia == i) {
+
+    return AlaCarte.injectLeft(ia)(ib)
+  } else {
+    return AlaCarte.injectRight(ia)(ib)(i)(iInj)
+  }
+}
+
+function lit(n) {
+  return inject(injectWhich(functorLit, functorAdd, functorLit))(new Lit(n))
+}
+console.log(interpretExpr(interpreterOr(evalLit)(evalAdd))(lit(4)));
