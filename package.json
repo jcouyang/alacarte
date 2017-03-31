@@ -1,5 +1,10 @@
 {
-  "dependencies": {
+  "scripts": {
+    "test": "jest",
+    "build": "pulp build"
+  },
+  "devDependencies": {
+    "jest": "^19.0.2",
     "pulp": "^10.0.4"
   }
 }
