@@ -62,7 +62,6 @@ const interpreter = fromArray([evalLit,evalAdd], interpreterOr)
 // }
 // var expr = inject(AlaCarte.injectRight(functorAdd)(functorAdd)(functorLit)(AlaCarte.injectId(functorAdd)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(1)))(inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(2)));
 
-var exprLit = inject(AlaCarte.injectLeft(functorLit)(functorAdd))(new Lit(10))
 function injectWhich(ia, ib, i, iInj) {
   if(ia == ib && ia == i) {
     return AlaCarte.injectId(ia)(ib)
@@ -77,4 +76,9 @@ function injectWhich(ia, ib, i, iInj) {
 function lit(n) {
   return inject(injectWhich(functorLit, functorAdd, functorLit))(new Lit(n))
 }
-console.log(interpretExpr(interpreterOr(evalLit)(evalAdd))(lit(4)));
+
+function add(a, b) {
+  return inject(injectWhich(functorLit, functorAdd, functorAdd, AlaCarte.injectId(functorAdd)))(new Add(a, b))
+}
+
+console.log(interpretExpr(fromArray([evalLit, evalAdd], interpreterOr))(add(lit(4), lit(3))));
