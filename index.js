@@ -1,4 +1,3 @@
-const AlaCarte = require('./output/AlaCarte')
 const {In,
        Inl,
        Inr,
@@ -6,56 +5,34 @@ const {In,
        interpreterOr,
        Interpreter,
        inject,
+       injectId,
+       injectLeft,
+       injectRight,
        functorOr,
-      } = AlaCarte
+      } = require('./output/AlaCarte')
 const {Functor} = require('./output/Data.Functor')
+
 function interpreterFor(functor, interpreter) {
   return new Interpreter(function () {
     return functor;
   }, interpreter);
 }
 
-function fromArray(array, functor) {
-  let head = array[0]
-  let tail = array.slice(1)
-  if(tail.length===0) {
-    return head;
-  }else{
-    return functor(head)(fromArray(tail, functor))
-  }
-}
-
-function injectInto(typeArray, type) {
-
-  if(!typeArray.type){
-    return AlaCarte.injectId(type)
-  }else if(typeArray.type.head == type){
-    return AlaCarte.injectLeft(typeArray.type.head)(typeArray.type.tail)
-  }else if(typeArray.type.tail){
-    return AlaCarte.injectRight(typeArray.type.head)(typeArray.type.tail)(type)(injectInto(typeArray.type.tail, type))
-  }
-  throw new Error(`Failed inject type into typeArray`);
-}
-
 function injectorFrom(types) {
-  let functorTypes = fromArray(types, functorOrT)
-  function injector(t){
-    let inject = injectInto(functorTypes, t)
-    inject.type = {sub: t, sup: functorTypes}
+  let supTypes = _functorFromArray(functorOrT)(types)
+  function injector(type){
+    let inject = _injectInto(supTypes, type)
+    inject.__TYPE__ = {__SUB__: type, __SUP__: supTypes}
     return inject
   }
-  injector.type = functorTypes
+  injector.__TYPE__ = supTypes
   return injector
 }
 
-function interpreterFrom(types) {
-  return fromArray(types, interpreterOr)
-}
-
-function functorOrT(head) {
-  return function(tail) {
-    let functor = functorOr(head)(tail)
-    functor.type = {head, tail}
+function functorOrT(__LEFT__) {
+  return function(__RIGHT__) {
+    let functor = functorOr(__LEFT__)(__RIGHT__)
+    functor.__TYPE__ = {__LEFT__, __RIGHT__}
     return functor
   }
 }
@@ -64,19 +41,42 @@ function injectT(injector) {
   return function (adt) {
     let expr = inject(injector)(adt);
     expr.injector = injector
-
     return expr
-    }
+  }
 }
 
 function supTypeSameAs(injector){
   return function(expr){
-    return expr.injector.type.sup == injector.type
+    return expr.injector.__TYPE__.__SUP_TYPE__ == injector.__TYPE__
   }
 }
+
+function _functorFromArray(functor) {
+  return function go(array){
+    let head = array[0]
+    let tail = array.slice(1)
+    if(tail.length===0) {
+      return head;
+    }else{
+      return functor(head)(go(tail))
+    }
+  }
+}
+
+function _injectInto(functorOr, type) {
+  if(!functorOr.__TYPE__){
+    return injectId(type)
+  }else if(functorOr.__TYPE__.__LEFT__ == type){
+    return injectLeft(functorOr.__TYPE__.__LEFT__)(functorOr.__TYPE__.__RIGHT__)
+  }else if(functorOr.__TYPE__.__RIGHT__){
+    return injectRight(functorOr.__TYPE__.__LEFT__)(functorOr.__TYPE__.__RIGHT__)(type)(_injectInto(functorOr.__TYPE__.__RIGHT__, type))
+  }
+  throw new Error(`Failed inject type into functorOr`);
+}
+
 module.exports = {
   injectorFrom,
-  interpreterFrom,
+  interpreterFrom: _functorFromArray(interpreterOr),
   interpreterFor,
   interpretExpr,
   Functor,
