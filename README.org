@@ -1,0 +1,47 @@
+* Data types à la carte in JavaScript
+
+this is simple implement that make [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][Data Types à la Carte]] practical useful in JavaScript. I was tend to solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technic in any other flux e.g. redux
+
+** Why
+The problem of react-most of any flux is that when a Action is dispatched, something =reducer= will have to evaluate it and produce something to change state.
+
+This means, you have to define all your Actions in one place so that any reducer can switch on them. e.g. in react-most [[https://github.com/reactive-react/react-most/blob/master/examples/counter/src/app.jsx#L18][there is a big switch]], you've probably see lot of these in redux as well.
+
+It's global thing, anyone want to add a new Action will have to change it.
+
+Same expression problem that Data Types à la Carte try to solve if we map the concept of =Action= to =Expression=, and =Reducer= to =Interpreter=.
+
+
+** How
+With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll set us free from ugly switch case.
+
+compare the difference here
+
+- before
+#+BEGIN_SRC js
+    sink$: intent$.map(intent => {
+      switch (intent.type) {
+        case 'inc':
+          return state => ({ count: state.count + 1 });
+        case 'dec':
+          return state => ({ count: state.count - 1 });
+        default:
+          return _ => _;
+    }
+#+END_SRC
+
+- after
+#+BEGIN_SRC js
+  sink$: intent$.filter(supTypeSameAs(injector))
+                .map(interpretExpr(interpreter))
+#+END_SRC
+
+with Data Types à la Carte, you reducer will be "Type" safe and clean than ever. You'll probably confuse what the hell is =subTypeSameAs= or =injector=, I'll explain this further but now you should able to see the logic is pretty declarative and straightforward here.
+
+#+BEGIN_QUOTE
+it just filter from all the =Expressions= where they only the same =Type= as =injector=, then interpret these expressions with =interpreter=
+#+END_QUOTE
+
+** TODO Expression
+** TODO Injector
+** TODO Interpreter
