@@ -2,7 +2,9 @@
   "name": "alacarte.js",
   "scripts": {
     "test": "jest",
-    "build": "pulp build"
+    "prebuild": "bower i",
+    "build": "pulp build",
+    "browserify": "pulp browserify -m AlaCarte --standalone AlaCarte -O -t alacarte.js"
   },
   "devDependencies": {
     "babel-cli": "^6.24.0",
@@ -12,5 +14,11 @@
   },
   "dependencies": {
     "bower": "^1.8.0"
-  }
+  },
+  "version": "0.0.2",
+  "description": "Data Types a la carte for JavaScript",
+  "main": "index.js",
+  "repository": "git@github.com:jcouyang/alacarte.git",
+  "author": "Jichao Ouyang <oyanglulu@gmail.com>",
+  "license": "MIT"
 }
