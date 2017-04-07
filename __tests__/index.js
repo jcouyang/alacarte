@@ -5,7 +5,7 @@ const {
   Functor,
   interpreterFor,
   inject,
-} = require('../index.js')
+} = require('../index.es6')
 
 function Add(value0, value1) {
   this.value0 = value0
