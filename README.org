@@ -1,21 +1,21 @@
-* Data types à la carte in JavaScript
+* /Data types à la carte/ in JavaScript
 
-this is simple implement that make [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][Data Types à la Carte]] practical useful in JavaScript. I was tend to solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technic in any other flux e.g. redux
+It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][/Data Types à la Carte/]] (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
 
 ** Why
-The problem of react-most of any flux is that when a Action is dispatched, something =reducer= will have to evaluate it and produce something to change state.
+The problem of react-most of any flux is that when a Action is dispatched, something like =reducer= will have to evaluate it and produce something to change state.
 
 This means, you have to define all your Actions in one place so that any reducer can switch on them. e.g. in react-most [[https://github.com/reactive-react/react-most/blob/master/examples/counter/src/app.jsx#L18][there is a big switch]], you've probably see lot of these in redux as well.
 
 It's global thing, anyone want to add a new Action will have to change it.
 
-Same expression problem that Data Types à la Carte try to solve if we map the concept of =Action= to =Expression=, and =Reducer= to =Interpreter=.
+[[https://en.wikipedia.org/wiki/Expression_problem][The Expression Problem]] that Data Types à la Carte try to solve is pretty much the same as our problem if we map the concept of =Action= to =Expression=, and =Reducer= to =Interpreter=.
 
 
 ** How
-With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll set us free from ugly switch case.
+With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll let us finally get rid of ugly switch case.
 
-compare the difference here
+note the difference here
 
 - before
 #+BEGIN_SRC js
@@ -32,16 +32,91 @@ compare the difference here
 
 - after
 #+BEGIN_SRC js
+  let interpreter = interpreterFrom([evalLit, evalAdd, evalOver])
   sink$: intent$.filter(supTypeSameAs(injector))
-                .map(interpretExpr(interpreter))
+      .map(interpretExpr(interpreter))
 #+END_SRC
 
-with Data Types à la Carte, you reducer will be "Type" safe and clean than ever. You'll probably confuse what the hell is =subTypeSameAs= or =injector=, I'll explain this further but now you should able to see the logic is pretty declarative and straightforward here.
+with Data Types à la Carte, you reducer will be "Type" safe and declarative. You'll probably confuse what the hell is =subTypeSameAs= or =injector=, I'll explain this further but now you should able to see the logic is pretty declarative and straightforward here.
 
 #+BEGIN_QUOTE
 it just filter from all the =Expressions= where they only the same =Type= as =injector=, then interpret these expressions with =interpreter=
 #+END_QUOTE
 
-** TODO Expression
+** Expression
+the way writing Action like this is wrong
+#+BEGIN_SRC js
+ inc: () => ({ type: 'inc' }),
+ dec: () => ({ type: 'dec' }),
+#+END_SRC
+- it's not type safe, string could be wrong and not uniq
+- describe action at business level is wrong, if your business is complicated, imagine how many Action you'll end up writing.
+- reducer has to do two jobs at this point, interpret action, do business logic.
+
+Let's fix how we define Action with the concept of Expression
+#+BEGIN_SRC js
+      inc: () => over(lit('count'), add(lit(1))), // you can compose expressions to achieve your bussiness
+      dec: () => over(lit('count'), add(lit(-1)))
+#+END_SRC
+here we have 3 dsl, =over=, =add=, =lit=, they're not business code like just inc or dec counter, they are DSLs, you can compose these DSLs to achieve any business that they can represent.
+
+e.g. i can simple write a new action =inc2= with define any new type =over(lit('count'), add(lit(2)))=
+
+next let's see how to construct these Expr
+
+first, we need ADT for these Expr
+#+BEGIN_SRC js
+function Add(value0) {
+  this.value0 = value0
+}
+
+function Lit(value0) {
+  this.value0 = value0
+}
+function Over(value0, value1) {
+  this.value0 = value0
+  this.value1 = value1
+}
+#+END_SRC
+
+then, their Functor instances
+#+BEGIN_SRC js
+const functorLit = new Functor(f => v => new Lit(v.value0))
+const functorAdd = new Functor(f => v => new Add(f(v.value0)))
+const functorOver = new Functor(f => v => new Over(f(v.value0), f(v.value1)))
+#+END_SRC
+
 ** TODO Injector
+create injector from these functor types
+#+BEGIN_SRC js
+let injector = injectorFrom([functorLit, functorAdd, functorOver])
+#+END_SRC
+
+now we can inject each type into the injector
+#+BEGIN_SRC js
+let add = injectAdd(injector)
+let lit = injectLit(injector)
+let over = injectOver(injector)
+#+END_SRC
+
 ** TODO Interpreter
+Instances of Interpreters
+#+BEGIN_SRC js
+const evalAdd = interpreterFor(functorAdd, function (v) {
+  return x => x + v.value0
+});
+
+const evalLit = interpreterFor(functorLit, function (v) {
+  return v.value0
+});
+
+const evalOver = interpreterFor(functorOver, function (v) {
+  let newstate = {}
+  return state => (newstate[v.value0] = v.value1(state[v.value0]), newstate)
+});
+#+END_SRC
+
+Compose a Interpreter which can interpret Lit, Add, Over
+#+BEGIN_SRC js
+let interpreter = interpreterFrom([evalLit, evalAdd, evalOver])
+#+END_SRC
