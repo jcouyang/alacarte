@@ -1,6 +1,6 @@
 * /Data types à la carte/ in JavaScript
 
-It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][/Data Types à la Carte/]] (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
+It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][/Data Types à la Carte]]/ (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
 ** Install
 #+BEGIN_SRC sh
 yarn add alacarte.js
