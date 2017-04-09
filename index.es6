@@ -47,7 +47,7 @@ function injectT(injector) {
 
 function supTypeSameAs(injector){
   return function(expr){
-    return expr.injector.__TYPE__.__SUP_TYPE__ == injector.__TYPE__
+    return expr.injector.__TYPE__.__SUP__ == injector.__TYPE__
   }
 }
 
