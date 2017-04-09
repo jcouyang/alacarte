@@ -9,6 +9,9 @@
     "babelify": "babel index.es6 > index.js",
     "prepublish": "npm run build"
   },
+  "files": [
+    "alacarte.js"
+  ],
   "devDependencies": {
     "babel-cli": "^6.24.0",
     "babel-preset-env": "^1.3.2",
@@ -18,7 +21,7 @@
   "dependencies": {
     "bower": "^1.8.0"
   },
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Data Types a la carte for JavaScript",
   "main": "index.js",
   "repository": "git@github.com:jcouyang/alacarte.git",
