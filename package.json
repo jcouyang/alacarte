@@ -2,9 +2,12 @@
   "name": "alacarte.js",
   "scripts": {
     "test": "jest",
-    "prebuild": "bower i",
-    "build": "pulp build",
-    "browserify": "pulp browserify -m AlaCarte --standalone AlaCarte -O -t alacarte.js"
+    "prebuild": "bower i && pulp build",
+    "build": "npm run browserify && npm run babelify",
+    "browserify": "pulp browserify -m AlaCarte --standalone AlaCarte -O -t alacarte.js",
+    "postbrowserify": "./export-functor",
+    "babelify": "babel index.es6 > index.js",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "babel-cli": "^6.24.0",
