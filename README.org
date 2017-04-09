@@ -1,6 +1,10 @@
 * /Data types à la carte/ in JavaScript
 
 It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][/Data Types à la Carte/]] (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
+** Install
+#+BEGIN_SRC sh
+yarn add alacarte.js
+#+END_SRC
 
 ** Why
 The problem of react-most of any flux is that when a Action is dispatched, something like =reducer= will have to evaluate it and produce something to change state.
@@ -62,9 +66,13 @@ here we have 3 dsl, =over=, =add=, =lit=, they're not business code like just in
 
 e.g. i can simple write a new action =inc2= with define any new type =over(lit('count'), add(lit(2)))=
 
-next let's see how to construct these Expr
+but for now, forget about =Over= which should be concept from =Lens=. let's see how to construct a simple Expr that can only increase and decrease the counter
+#+BEGIN_SRC js
+      inc: () => add(lit(1)), // you can compose expressions to achieve your bussiness
+      dec: () => add(lit(-1))
+#+END_SRC
 
-first, we need ADT for these Expr
+first, we need ADT for
 #+BEGIN_SRC js
 function Add(value0) {
   this.value0 = value0
@@ -73,50 +81,104 @@ function Add(value0) {
 function Lit(value0) {
   this.value0 = value0
 }
-function Over(value0, value1) {
-  this.value0 = value0
-  this.value1 = value1
-}
 #+END_SRC
 
-then, their Functor instances
+then, implement their Functor instances
 #+BEGIN_SRC js
 const functorLit = new Functor(f => v => new Lit(v.value0))
 const functorAdd = new Functor(f => v => new Add(f(v.value0)))
-const functorOver = new Functor(f => v => new Over(f(v.value0), f(v.value1)))
 #+END_SRC
 
-** TODO Injector
+** Injector
 create injector from these functor types
 #+BEGIN_SRC js
-let injector = injectorFrom([functorLit, functorAdd, functorOver])
+let injector = injectorFrom([functorLit, functorAdd])
 #+END_SRC
 
-now we can inject each type into the injector
+this means injector can inject any type in =[functorLit, functorAdd]=
+
+now
+#+BEGIN_SRC js
+injector(functorLit) // will have type Lit :<: (Lit :+: Add)
+#+END_SRC
+
+so if you =inject= a =Lit= with this type of injector, you will get a =Expr= of type =Expr (Lit :+: Add)=
+
+now let's inject each type into the injector
 #+BEGIN_SRC js
 let add = injectAdd(injector)
 let lit = injectLit(injector)
-let over = injectOver(injector)
 #+END_SRC
 
-** TODO Interpreter
-Instances of Interpreters
+** Interpreter
+Instances of Interpreters, all expressions can eval into a function that take existing count and return a new count
 #+BEGIN_SRC js
 const evalAdd = interpreterFor(functorAdd, function (v) {
-  return x => x + v.value0
+  return count => count + v.value0(count)
 });
 
 const evalLit = interpreterFor(functorLit, function (v) {
-  return v.value0
-});
-
-const evalOver = interpreterFor(functorOver, function (v) {
-  let newstate = {}
-  return state => (newstate[v.value0] = v.value1(state[v.value0]), newstate)
+  return count => v.value0
 });
 #+END_SRC
 
-Compose a Interpreter which can interpret Lit, Add, Over
+Compose a Interpreter which can interpret Lit, Add
 #+BEGIN_SRC js
-let interpreter = interpreterFrom([evalLit, evalAdd, evalOver])
+let interpreter = interpreterFrom([evalLit, evalAdd])
 #+END_SRC
+
+** Add a new Expression Mult
+after all this, let's see how easy to add a new expression with modify any of the existing expressions and there interpreter
+
+- a ADT of Mult
+#+BEGIN_SRC js
+function Mult(a) {
+  this.value0 = a
+}
+#+END_SRC
+
+- functor instance
+#+BEGIN_SRC js
+const functorMult = new Functor(f => v => new Mult(f(v.value0))
+#+END_SRC
+
+- interpreter
+#+BEGIN_SRC js
+const evalMult = interpreterFor(functorMult, function (v) {
+  return count => count * v.value0(count)
+});
+let interpreter = interpreterFrom([evalLit, evalAdd, evalMult])
+#+END_SRC
+
+- injector
+#+BEGIN_SRC js
+let injector = injectorFrom([functorLit, functorAdd, evalfunctorMult])
+function injectMult(injector) {
+  return (a) => inject(injector(functorMult))(new Mult(a))
+}
+let mult = injectMult(injector)
+#+END_SRC
+
+
+- interpret
+#+BEGIN_SRC js
+let expr = add(mult(lit(2))) // count + (count * 2)
+interpretExpr(interpreter)(expr)
+#+END_SRC
+
+Nothing has been modify in existing code, a new expression and it's interpreter just works now.
+
+** a new Interpreter
+say we want another interpreter for the expr, like printer
+#+BEGIN_SRC js
+const printMult = interpreterFor(functorMult, v => `(count * ${v.value0})`)
+const printAdd = interpreterFor(functorAdd, v => `(count + ${v.value0})`)
+const printLit = interpreterFor(functorLit, v => `${v.value0}`)
+const printer = interpreterFrom([printLit, printAdd, printMult])
+#+END_SRC
+
+interpert the expr will print out the expression
+#+BEGIN_SRC js
+interpretExpr(printer)(expr)
+#+END_SRC
+will print =count + (count * 2)=
