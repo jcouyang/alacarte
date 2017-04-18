@@ -19,7 +19,7 @@
     "pulp": "^10.0.4",
     "bower": "^1.8.0"
   },
-  "version": "0.0.6",
+  "version": "0.1.0",
   "description": "Data Types a la carte for JavaScript",
   "main": "index.js",
   "repository": "git@github.com:jcouyang/alacarte.git",
