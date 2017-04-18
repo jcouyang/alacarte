@@ -25,8 +25,10 @@ function injectorFrom(exprs) {
     inject.__TYPE__ = {__SUB__: type, __SUP__: supTypes}
     return inject
   }
-  injector.__TYPE__ = supTypes
-  return injector
+  return {__TYPE__: supTypes,
+          inject: function(){
+            return exprs.map(x=>x.inject(injector))
+          }}
 }
 
 function functorOrT(__LEFT__) {
