@@ -74,6 +74,34 @@ function _injectInto(functorOr, type) {
   throw new Error(`Failed inject type into functorOr`);
 }
 
+function Expr(name, args) {
+  this.name = name;
+  this.args = args;
+  this.type = new Functor(f => v => Object.create({}, argsToMap(v,this.args,f)))
+}
+
+function argsToMap(v, args, f=(_=>_)) {
+  return args.map((arg,index) => ({[arg]: {value: f(v[arg], index),  enumerable: true}})).reduce((acc, a)=>Object.assign(acc, a), {})
+}
+Expr.prototype.inject = function(exprSupport){
+  return (...a) => inject(exprSupport(this.type))(Object.create({}, argsToMap({}, this.args, (_, index)=>a[index])))
+}
+Expr.create = function(desc) {
+  var result = {}
+  for (var expr in desc) {
+    if (desc.hasOwnProperty(expr)) {
+      result[expr] = new Expr(expr, desc[expr])
+    }
+  }
+  return result
+}
+
+function _Val() {
+  this.args = ['value'];
+  this.type = new Functor(f => v => Object.create({}, argsToMap(v,this.args)))
+}
+_Val.prototype = Expr.prototype
+
 module.exports = {
   injectorFrom,
   interpreterFrom: _functorFromArray(interpreterOr),
@@ -82,4 +110,6 @@ module.exports = {
   Functor,
   inject: injectT,
   supTypeSameAs,
+  Expr,
+  Val: new _Val,
 }
