@@ -10,21 +10,21 @@ const {
 } = require('../index.es6')
 
 const {Add, Mult} = Expr.create({Add: ['value0', 'value1'], Mult: ['value0', 'value1']})
-const evalAdd = interpreterFor(Add.type, function (v) {
+const evalAdd = interpreterFor(Add, function (v) {
   return v.value0 + v.value1
 });
 
-const evalLit = interpreterFor(Val.type, function (v) {
+const evalLit = interpreterFor(Val, function (v) {
   return v.value
 });
 
-const evalMult = interpreterFor(Mult.type, function (v) {
+const evalMult = interpreterFor(Mult, function (v) {
   return v.value0 * v.value1 | 0;
 });
 
 test('adds 1 + 2 to equal 3', () => {
   let interpreter = interpreterFrom([evalLit, evalAdd])
-  let injector = injectorFrom([Val.type, Add.type])
+  let injector = injectorFrom([Val, Add])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let expr = add(lit(1), lit(2))
@@ -34,7 +34,7 @@ test('adds 1 + 2 to equal 3', () => {
 test('(mult (add 1 3) 4) to equal 16', () => {
   // a la carte new data type Mult
   let interpreter = interpreterFrom([evalLit, evalAdd, evalMult])
-  let injector = injectorFrom([Val.type, Add.type, Mult.type])
+  let injector = injectorFrom([Val, Add, Mult])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let mult = Mult.inject(injector)
@@ -43,11 +43,11 @@ test('(mult (add 1 3) 4) to equal 16', () => {
 })
 
 test('user interpreter as printer', () => {
-  const printMult = interpreterFor(Mult.type, v => `(${v.value0} * ${v.value1})`)
-  const printAdd = interpreterFor(Add.type, v => `(${v.value0} + ${v.value1})`)
-  const printLit = interpreterFor(Val.type, v => `${v.value}`)
+  const printMult = interpreterFor(Mult, v => `(${v.value0} * ${v.value1})`)
+  const printAdd = interpreterFor(Add, v => `(${v.value0} + ${v.value1})`)
+  const printLit = interpreterFor(Val, v => `${v.value}`)
   const printer = interpreterFrom([printLit, printAdd, printMult])
-  let injector = injectorFrom([Val.type, Add.type, Mult.type])
+  let injector = injectorFrom([Val, Add, Mult])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let mult = Mult.inject(injector)
@@ -57,7 +57,7 @@ test('user interpreter as printer', () => {
 
 test('arbitrary type', () => {
   let interpreter = interpreterFrom([evalLit, evalAdd])
-  let injector = injectorFrom([Val.type, Add.type])
+  let injector = injectorFrom([Val, Add])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let expr = add(lit('1'), lit('2'))
@@ -66,7 +66,7 @@ test('arbitrary type', () => {
 
 test('order does not matter, but injector and interpreter has to be the same', () => {
   let interpreter = interpreterFrom([evalAdd, evalLit, evalMult])
-  let injector = injectorFrom([Add.type, Val.type, Mult.type])
+  let injector = injectorFrom([Add, Val, Mult])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let mult = Mult.inject(injector)
@@ -75,7 +75,7 @@ test('order does not matter, but injector and interpreter has to be the same', (
 })
 test('missing argument', () => {
   let interpreter = interpreterFrom([evalAdd, evalLit, evalMult])
-  let injector = injectorFrom([Add.type, Val.type, Mult.type])
+  let injector = injectorFrom([Add, Val, Mult])
   let add = Add.inject(injector)
   let lit = Val.inject(injector)
   let mult = Mult.inject(injector)

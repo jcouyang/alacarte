@@ -12,14 +12,14 @@ const {In,
        Functor,
       } = require('./alacarte')
 
-function interpreterFor(functor, interpreter) {
+function interpreterFor(expr, interpreter) {
   return new Interpreter(function () {
-    return functor;
+    return expr.__TYPE__;
   }, interpreter);
 }
 
-function injectorFrom(types) {
-  let supTypes = _functorFromArray(functorOrT)(types)
+function injectorFrom(exprs) {
+  let supTypes = _functorFromArray(functorOrT)(exprs.map(expr=>expr.__TYPE__))
   function injector(type){
     let inject = _injectInto(supTypes, type)
     inject.__TYPE__ = {__SUB__: type, __SUP__: supTypes}
@@ -77,14 +77,14 @@ function _injectInto(functorOr, type) {
 function Expr(name, args) {
   this.name = name;
   this.args = args;
-  this.type = new Functor(f => v => Object.create({}, argsToMap(v,this.args,f)))
+  this.__TYPE__ = new Functor(f => v => Object.create({}, argsToMap(v,this.args,f)))
 }
 
 function argsToMap(v, args, f=(_=>_)) {
   return args.map((arg,index) => ({[arg]: {value: f(v[arg], index),  enumerable: true}})).reduce((acc, a)=>Object.assign(acc, a), {})
 }
 Expr.prototype.inject = function(exprSupport){
-  return (...a) => inject(exprSupport(this.type))(Object.create({}, argsToMap({}, this.args, (_, index)=>a[index])))
+  return (...a) => inject(exprSupport(this.__TYPE__))(Object.create({}, argsToMap({}, this.args, (_, index)=>a[index])))
 }
 Expr.create = function(desc) {
   var result = {}
@@ -98,7 +98,7 @@ Expr.create = function(desc) {
 
 function _Val() {
   this.args = ['value'];
-  this.type = new Functor(f => v => Object.create({}, argsToMap(v,this.args)))
+  this.__TYPE__ = new Functor(f => v => Object.create({}, argsToMap(v,this.args)))
 }
 _Val.prototype = Expr.prototype
 
