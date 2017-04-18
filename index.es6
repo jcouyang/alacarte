@@ -112,6 +112,7 @@ module.exports = {
   Functor,
   inject: injectT,
   supTypeSameAs,
+  isInjectedBy: supTypeSameAs,
   Expr,
   Val: new _Val,
 }
