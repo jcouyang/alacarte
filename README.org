@@ -6,42 +6,93 @@ It's pretty funny though, this is a simple implementation that port [[http://cit
 yarn add alacarte.js
 #+END_SRC
 
-** Why
-The problem of react-most of any flux is that when a Action is dispatched, something like =reducer= will have to evaluate it and produce something to change state.
+** TLDR;
+*** BEFORE (The Expression Problem)
+#+BEGIN_SRC diff
+  const Intent = Type({
+    Inc: [Number],
+    Dec: [Number],
++   Mult: [Number],
+  })
+  const increasable = connect(intent$ => {
+    return {
+      sink$: intent$.map(Intent.case({
+        Inc: (v) => over(lensCount, x=>x+v),
+        Dec: (v) => over(lensCount, x=>x-v),
++       Mult: (v) => over(lensCount, x=>x*v),
+        _: () => identity
+      })),
+      actions: {
+        inc: Intent.Inc,
+        dec: Intent.Dec,
++       mult: Intent.Mult
+      }
+    }
+  })
+#+END_SRC
 
-This means, you have to define all your Actions in one place so that any reducer can switch on them. e.g. in react-most [[https://github.com/reactive-react/react-most/blob/master/examples/counter/src/app.jsx#L18][there is a big switch]], you've probably see lot of these in redux as well.
+*** AFTER (Data Types a la carte)
+#+BEGIN_SRC diff
+  const {Add} = Expr.create({ Add: ['fn'] })
+  const evalAdd = interpreterFor(Add, function (v) {
+    return x => x + v.fn(x)
+  });
+
+  const evalVal = interpreterFor(Val, function (v) {
+    return ()=> v.value
+  });
+
+  const evalOver = interpreterFor(Over, function (v) {
+    let newstate = {}
+    let prop = v.prop()
+    return state => (newstate[prop] = v.fn(state[prop]), newstate)
+  });
+
+- let interpreter = interpreterFrom([evalLit, evalAdd, evalOver])
+- let injector = injectorFrom([Val, Add, Over])
+- let [val, add, over] = injector.inject()
+
++ const {Mult} = Expr.create({ Mult: ['fn'] })
++ const evalMult = interpreterFor(Mult, function (v) {
++   return x => x * v.fn(x)
++ });
+
++ let injector = injectorFrom([Val, Add, Over, Mult])
++ let interpreter = interpreterFrom([evalLit, evalAdd, evalOver, evalMult])
++ let [val, add, over, mult] = injector.inject()
+
+  const counterable = connect((intent$) => {
+    return {
+      sink$: intent$.filter(isInjectedBy(injector))
+                    .map(interpretExpr(interpreter)),
+      inc: v => over(val('count'), add(val(v))),
+      dec: v => over(val('count'), add(val(-v))),
++     mult: v => over(val('count'), mult(val(v))),
+    }
+  })
+#+END_SRC
+
+** Why
+The problem of react-most or any flux is that when a Action is dispatched, something like a =reducer= will have to evaluate it and produce something to change state.
+
+Which means, you have to define all your Actions in one place so that any reducer can switch on them. e.g. in react-most [[https://github.com/reactive-react/react-most/blob/master/examples/counter/src/app.jsx#L18][there is a big switch]], you've probably see lot of these in redux as well.
 
 It's global thing, anyone want to add a new Action will have to change it.
 
 [[https://en.wikipedia.org/wiki/Expression_problem][The Expression Problem]] that Data Types à la Carte try to solve is pretty much the same as our problem if we map the concept of =Action= to =Expression=, and =Reducer= to =Interpreter=.
 
+[[https://oleksandrmanzyuk.wordpress.com/2014/06/18/from-object-algebras-to-finally-tagless-interpreters-2/][From Object Algebras to Finally Tagless Interpreters]] has better explaination of Expression Problem than me
+
+https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232942.png?w=1000
+
+https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232949.png?w=1000
 
 ** How
 With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll let us finally get rid of ugly switch case.
 
 note the difference here
 
-- before
-#+BEGIN_SRC js
-    sink$: intent$.map(intent => {
-      switch (intent.type) {
-        case 'inc':
-          return state => ({ count: state.count + 1 });
-        case 'dec':
-          return state => ({ count: state.count - 1 });
-        default:
-          return _ => _;
-    }
-#+END_SRC
-
-- after
-#+BEGIN_SRC js
-  let interpreter = interpreterFrom([evalLit, evalAdd, evalOver])
-  sink$: intent$.filter(supTypeSameAs(injector))
-      .map(interpretExpr(interpreter))
-#+END_SRC
-
-with Data Types à la Carte, you reducer will be "Type" safe and declarative. You'll probably confuse what the hell is =subTypeSameAs= or =injector=, I'll explain this further but now you should able to see the logic is pretty declarative and straightforward here.
+with Data Types à la Carte, you reducer will be "Type" safe and declarative. You'll probably confuse what the hell is =isInjectedBy= or =injector=, I'll explain this further but now you should able to see the logic is pretty declarative and straightforward here.
 
 #+BEGIN_QUOTE
 it just filter from all the =Expressions= where they only the same =Type= as =injector=, then interpret these expressions with =interpreter=
