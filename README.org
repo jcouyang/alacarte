@@ -1,5 +1,7 @@
 * /Data types à la carte/ in JavaScript
 
+[[https://github.com/jcouyang/alacarte/wiki/%E8%AF%BB%E6%88%91][中文 :cn:]]
+
 It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][Data Types à la Carte]] (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
 ** Install
 #+BEGIN_SRC sh
@@ -72,6 +74,10 @@ yarn add alacarte.js
   })
 #+END_SRC
 
+*** Example
+- [[https://reactive-react.github.io/react-most/examples/alacarte/public/][try it!]]
+- [[https://github.com/reactive-react/react-most/tree/master/examples/alacarte][source]]
+
 ** Why
 The problem of react-most or any flux is that when a Action is dispatched, something like a =reducer= will have to evaluate it and produce something to change state.
 
@@ -83,9 +89,7 @@ It's global thing, anyone want to add a new Action will have to change it.
 
 [[https://oleksandrmanzyuk.wordpress.com/2014/06/18/from-object-algebras-to-finally-tagless-interpreters-2/][From Object Algebras to Finally Tagless Interpreters]] has better explaination of Expression Problem than me
 
-https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232942.png
-
-https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232949.png
+[[[[https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232942.png]]]]
 
 ** How
 With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll let us finally get rid of ugly switch case.
@@ -99,31 +103,7 @@ it just filter from all the =Expressions= where they only the same =Type= as =in
 #+END_QUOTE
 
 ** Expression
-the way writing Action like this is wrong
-#+BEGIN_SRC js
- inc: () => ({ type: 'inc' }),
- dec: () => ({ type: 'dec' }),
-#+END_SRC
-- it's not type safe, string could be wrong and not uniq
-- describe action at business level is wrong, if your business is complicated, imagine how many Action you'll end up writing.
-- reducer has to do two jobs at this point, interpret action, do business logic.
 
-Let's fix how we define Action with the concept of Expression
-#+BEGIN_SRC js
-      inc: () => over(lit('count'), add(lit(1))), // you can compose expressions to achieve your bussiness
-      dec: () => over(lit('count'), add(lit(-1)))
-#+END_SRC
-here we have 3 dsl, =over=, =add=, =lit=, they're not business code like just inc or dec counter, they are DSLs, you can compose these DSLs to achieve any business that they can represent.
-
-e.g. i can simple write a new action =inc2= with define any new type =over(lit('count'), add(lit(2)))=
-
-but for now, forget about =Over= which should be concept from =Lens=. let's see how to construct a simple Expr that can only increase and decrease the counter
-#+BEGIN_SRC js
-      inc: () => add(lit(1)), // you can compose expressions to achieve your bussiness
-      dec: () => add(lit(-1))
-#+END_SRC
-
-first, create Expr
 #+BEGIN_SRC js
 let {Add, Over} = Expr.create({
   Add: ['fn'],
@@ -131,6 +111,8 @@ let {Add, Over} = Expr.create({
 })
 #+END_SRC
 =Add= is the name of the expression and =['fn']= means it contains a value named =fn=. since over need a function so Add should contains a function.
+
+=Over= has value =prop= and =fn=
 
 ** Interpreter
 then, create interpreter for each of them
