@@ -1,1 +1,1 @@
-sed -e "s/exports\[\"injectRight\"\] = injectRight;/exports\[\"injectRight\"\] = injectRight;exports\[\"Functor\"\] = PS\[\"Data.Functor\"\]\.Functor;/g" -i .bak alacarte.js
+sed -e "s/exports\[\"injectRight\"\] = injectRight;/exports\[\"injectRight\"\] = injectRight;exports\[\"Functor\"\] = PS\[\"Data.Functor\"\]\.Functor;/g" -i '' alacarte.js

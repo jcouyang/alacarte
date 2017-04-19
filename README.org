@@ -1,6 +1,6 @@
 * /Data types à la carte/ in JavaScript
 
-It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][/Data Types à la Carte]]/ (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
+It's pretty funny though, this is a simple implementation that port [[http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=4B1BB52114FB29D3169B1761C3FBFF15?doi=10.1.1.101.4131&rep=rep1&type=pdf][Data Types à la Carte]] (it would be awfully help if you can read this paper first) from Haskell to JavaScript. It will solve the particular problem in [[https://github.com/reactive-react/react-most][react-most]] but you can use this technique with any other flux e.g. redux or DSL(expression + interpreter)
 ** Install
 #+BEGIN_SRC sh
 yarn add alacarte.js
@@ -72,59 +72,50 @@ but for now, forget about =Over= which should be concept from =Lens=. let's see 
       dec: () => add(lit(-1))
 #+END_SRC
 
-first, we need ADT for
+first, create Expr
 #+BEGIN_SRC js
-function Add(value0) {
-  this.value0 = value0
-}
-
-function Lit(value0) {
-  this.value0 = value0
-}
+let {Add, Over} = Expr.create({
+  Add: ['fn'],
+  Over: ['prop', 'fn']
+})
 #+END_SRC
-
-then, implement their Functor instances
-#+BEGIN_SRC js
-const functorLit = new Functor(f => v => new Lit(v.value0))
-const functorAdd = new Functor(f => v => new Add(f(v.value0)))
-#+END_SRC
-
-** Injector
-create injector from these functor types
-#+BEGIN_SRC js
-let injector = injectorFrom([functorLit, functorAdd])
-#+END_SRC
-
-this means injector can inject any type in =[functorLit, functorAdd]=
-
-now
-#+BEGIN_SRC js
-injector(functorLit) // will have type Lit :<: (Lit :+: Add)
-#+END_SRC
-
-so if you =inject= a =Lit= with this type of injector, you will get a =Expr= of type =Expr (Lit :+: Add)=
-
-now let's inject each type into the injector
-#+BEGIN_SRC js
-let add = injectAdd(injector)
-let lit = injectLit(injector)
-#+END_SRC
+=Add= is the name of the expression and =['fn']= means it contains a value named =fn=. since over need a function so Add should contains a function.
 
 ** Interpreter
-Instances of Interpreters, all expressions can eval into a function that take existing count and return a new count
+then, create interpreter for each of them
 #+BEGIN_SRC js
-const evalAdd = interpreterFor(functorAdd, function (v) {
-  return count => count + v.value0(count)
+// Instances of Interpreters
+const evalAdd = interpreterFor(Add, function (v) {
+  return x => x + v.fn(x)
 });
 
-const evalLit = interpreterFor(functorLit, function (v) {
-  return count => v.value0
+const evalVal = interpreterFor(Val, function (v) {
+  return ()=> v.value
+});
+
+const evalOver = interpreterFor(Over, function (v) {
+  let newstate = {}
+  let prop = v.prop()
+  return state => (newstate[prop] = v.fn(state[prop]), newstate)
 });
 #+END_SRC
 
-Compose a Interpreter which can interpret Lit, Add
+the =Val= Type is built in alacarte.js so you don't need to define the expression type, just simply =import {Val} from 'alacarte.js'= and implement it's interpreter.
+
+compose these interpreters
 #+BEGIN_SRC js
 let interpreter = interpreterFrom([evalLit, evalAdd])
+#+END_SRC
+** Injector
+create a injector from these functor types
+#+BEGIN_SRC js
+let injector = injectorFrom([Val, Add, Over])
+#+END_SRC
+
+now inject the injector will generate a list of expression constructor
+
+#+BEGIN_SRC js
+let [val, add, over] = injector.inject()
 #+END_SRC
 
 ** Add a new Expression Mult
@@ -132,38 +123,17 @@ after all this, let's see how easy to add a new expression with modify any of th
 
 - a ADT of Mult
 #+BEGIN_SRC js
-function Mult(a) {
-  this.value0 = a
-}
-#+END_SRC
-
-- functor instance
-#+BEGIN_SRC js
-const functorMult = new Functor(f => v => new Mult(f(v.value0))
-#+END_SRC
-
-- interpreter
-#+BEGIN_SRC js
-const evalMult = interpreterFor(functorMult, function (v) {
-  return count => count * v.value0(count)
+// a new mult expr is add without modify any of the current code
+let {Mult} = Expr.create({
+  Mult: ['fn'],
+})
+const evalMult = interpreterFor(Mult, function (v) {
+  return x => x * v.fn(x)
 });
-let interpreter = interpreterFrom([evalLit, evalAdd, evalMult])
-#+END_SRC
 
-- injector
-#+BEGIN_SRC js
-let injector = injectorFrom([functorLit, functorAdd, evalfunctorMult])
-function injectMult(injector) {
-  return (a) => inject(injector(functorMult))(new Mult(a))
-}
-let mult = injectMult(injector)
-#+END_SRC
-
-
-- interpret
-#+BEGIN_SRC js
-let expr = add(mult(lit(2))) // count + (count * 2)
-interpretExpr(interpreter)(expr)
+let printMult = interpreterFor(Mult, function (v) {
+  return `(_ * ${v.fn})`
+});
 #+END_SRC
 
 Nothing has been modify in existing code, a new expression and it's interpreter just works now.
@@ -171,10 +141,21 @@ Nothing has been modify in existing code, a new expression and it's interpreter 
 ** a new Interpreter
 say we want another interpreter for the expr, like printer
 #+BEGIN_SRC js
-const printMult = interpreterFor(functorMult, v => `(count * ${v.value0})`)
-const printAdd = interpreterFor(functorAdd, v => `(count + ${v.value0})`)
-const printLit = interpreterFor(functorLit, v => `${v.value0}`)
-const printer = interpreterFrom([printLit, printAdd, printMult])
+const printAdd = interpreterFor(Add, function (v) {
+  return `(_ + ${v.fn})`
+});
+
+const printVal = interpreterFor(Val, function (v) {
+  return v.value.toString()
+});
+
+const printOver = interpreterFor(Over, function (v) {
+  return `over ${v.prop} do ${v.fn}`
+});
+
+const printMult = interpreterFor(Mult, function (v) {
+  return `(_ * ${v.fn})`
+});
 #+END_SRC
 
 interpert the expr will print out the expression
