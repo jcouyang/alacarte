@@ -83,9 +83,9 @@ It's global thing, anyone want to add a new Action will have to change it.
 
 [[https://oleksandrmanzyuk.wordpress.com/2014/06/18/from-object-algebras-to-finally-tagless-interpreters-2/][From Object Algebras to Finally Tagless Interpreters]] has better explaination of Expression Problem than me
 
-https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232942.png?w=1000
+https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232942.png
 
-https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232949.png?w=1000
+https://oleksandrmanzyuk.files.wordpress.com/2014/06/wpid-2014-06-19-232949.png
 
 ** How
 With Data Types à la Carte, we now can define Actions anywhere, anytime, further more, it'll let us finally get rid of ugly switch case.
